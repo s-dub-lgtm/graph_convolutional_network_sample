@@ -52,7 +52,16 @@ class RGCNLayer(nn.Module):
             def message_func(edges):
                 # for input layer, matrix multiply can be converted to be an embedding lookup using source node id
                 embed = weight.view(-1, self.out_feat)
+                print('input')
+                print(edges.data['rel_type'])
+                print(len(edges.data['rel_type']))
+                print(self.in_feat)
+                print(edges.src['id'])
+                print(len(edges.src['id']))
                 index = edges.data['rel_type'] * self.in_feat + edges.src['id']
+                print(index)
+                print(len(index))
+                print(embed[index] * edges.data['norm'])
                 return {'msg': embed[index] * edges.data['norm']}
         else:
             def message_func(edges):
@@ -105,6 +114,7 @@ class Model(nn.Module):
     # initialize feature for each node
     def create_features(self):
         features = torch.arange(self.num_nodes)
+        print(features)
         return features
     
     def build_input_layer(self):
@@ -120,8 +130,10 @@ class Model(nn.Module):
     def forward(self, g):
         if self.features is not None:
             g.ndata['id'] = self.features
+            print(g.ndata['id'])
         for layer in self.layers:
             layer(g)
+        print(g.ndata['h'])
         return g.ndata.pop('h')
 
 
@@ -136,13 +148,22 @@ num_nodes = data.num_nodes
 num_rels = data.num_rels
 num_classes = data.num_classes
 labels = data.labels
+from collections import Counter
+
+print(Counter(np.squeeze(np.asarray(labels))))
 train_idx = data.train_idx
 # split training and validation set
 val_idx = train_idx[:len(train_idx) // 5]
+print(val_idx)
+print(len(val_idx))
 train_idx = train_idx[len(train_idx) // 5:]
+print(train_idx)
+print(len(train_idx))
 
 # edge type and normalization factor
 edge_type = torch.from_numpy(data.edge_type)
+print(edge_type)
+print(len(edge_type))
 edge_norm = torch.from_numpy(data.edge_norm).unsqueeze(1)
 
 labels = torch.from_numpy(labels).view(-1)
@@ -160,6 +181,8 @@ g = DGLGraph()
 g.add_nodes(num_nodes)
 g.add_edges(data.edge_src, data.edge_dst)
 g.edata.update({'rel_type': edge_type, 'norm': edge_norm})
+print(g.ndata)
+print(g.edata)
 # %%
 # create model
 model = Model(len(g), n_hidden, num_classes, num_rels, num_bases=n_bases, num_hidden_layer=n_hidden_layers)
@@ -172,6 +195,8 @@ model.train()
 for epoch in range(n_epochs):
     optimizer.zero_grad()
     logits = model.forward(g)
+    print(len(logits))
+    print(len(logits[0]))
     loss = F.cross_entropy(logits[train_idx], labels[train_idx])
     loss.backward()
     

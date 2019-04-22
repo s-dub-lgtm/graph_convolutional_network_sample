@@ -61,11 +61,18 @@ class RGCNLayer(nn.Module):
                 index = edges.data['rel_type'] * self.in_feat + edges.src['id']
                 print(index)
                 print(len(index))
+                print(embed[index])
+                print(len(embed[index]))
+                print(edges.data['norm'])
+                print(len(edges.data['norm']))
                 print(embed[index] * edges.data['norm'])
+                print(len(embed[index] * edges.data['norm']))
                 return {'msg': embed[index] * edges.data['norm']}
         else:
             def message_func(edges):
                 w = weight[edges.data['rel_type']]
+                print(edges.src['h'].unsqueeze(1).size())
+                print(w.size())
                 msg = torch.bmm(edges.src['h'].unsqueeze(1), w).squeeze()
                 msg = msg * edges.data['norm']
                 return {'msg': msg}
